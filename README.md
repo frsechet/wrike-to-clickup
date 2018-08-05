@@ -2,6 +2,8 @@
 
 If you have a Wrike account and are dissatisfied with their service, and happen to want to switch to [Clickup](https://www.clickup.com), you are in luck, here is how you can do it with very minimal trouble.
 
+This script will convert all your data from Wrike (including tasks that are finished, canceled etc.), in all your projects, folders and subfolders, and assign them to a list (based on the original folder names) as well as convert all other folder/project assignment as a tag. All assignees are also preserved.
+
 ## Disclaimer
 
 I'm neither an employee of Clickup nor from Wrike. This simple script was written on a sunny Sunday afternoon as a tool for performing my own switch. While it works for me, I don't intend to maintain it past my own current needs. Wrike and Clickup may both change their import/export formatting at any time without asking me first, so I won't do any issues and stuff, just use it, modify it, do whatever you want with it. If it helps you, I'm happy.
@@ -30,7 +32,13 @@ npm i -g wrike2clickup
 
 Example usage:
 ```
-wrike2clickup -u users.json -f folders.json -t tasks.json [--excludeTags "list,of,tags,to,exclude"] [--listNames "list,of,folders,to,convert,to,lists"] -o mytasks.csv
+wrike2clickup \
+  -u users.json \
+  -f folders.json \
+  -t tasks.json \
+  [--excludeTags "list,of,tags,to,exclude"] \
+  [--listNames "list,of,folders,to,convert,to,lists"] \
+  -o mytasks.csv
 ```
 
 ## License

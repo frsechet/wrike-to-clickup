@@ -1,12 +1,47 @@
+#!/usr/bin/env node
+
 const fs = require('fs');
 const path = require('path');
 const _ = require('lodash');
 const json2csv = require('json2csv').parse;
 const TurndownService = require('turndown');
+const program = require('commander');
 
-const srcUsers = require('./source/users.json');
-const srcTasks = require('./source/tasks.json');
-const srcFolders = require('./source/folders.json');
+let srcUsersPath;
+let srcTasksPath;
+let srcFoldersPath;
+let outputPath;
+let excludeTags = [];
+let listNames = [];
+
+program.version('0.0.1', '-v, --version');
+
+program
+  .command('run')
+  .option('-f, --folder <srcFoldersPath>', 'Path to your folders.json file (mandatory)')
+  .option('-t, --tasks <srcTasksPath>', 'Path to your tasks.json file (mandatory)')
+  .option('-u, --users <srcUsersPath>', 'Path to your users.json file (mandatory)')
+  .option('-o, --output <outputPath>', 'Where to save the output file (mandatory)')
+  .option('-e, --excludeTags [excludeTags]', 'Where to save the output file (mandatory)', '')
+  .option('-l, --listNames [listNames]', 'Where to save the output file (mandatory)', '')
+  .description("Convert all tasks in a Wrike account to Clickup's csv import format")
+  .action((cmd) => {
+    ({
+      srcUsersPath,
+      srcTasksPath,
+      srcFoldersPath,
+      outputPath,
+    } = cmd);
+    excludeTags = cmd.excludeTags.split(',');
+    listNames = cmd.listNames.split(',');
+  });
+
+program.parse(process.argv);
+
+
+const srcUsers = fs.readFileSync(path.join(process.cwd(), srcUsersPath));
+const srcTasks = fs.readFileSync(path.join(process.cwd(), srcTasksPath));
+const srcFolders = fs.readFileSync(path.join(process.cwd(), srcFoldersPath));
 
 const ts = new TurndownService();
 
@@ -142,18 +177,9 @@ const folders = srcFolders.map(transformFolder).filter(exists);
  * Clickup (sadly) does not have a concept of linking the same task to multiple folders
  * Let's define what folders will be our future `lists`.
  * By default all folder names will be tags.
- *
- * The structure.json file must be formatted as follows
- * (you can set both properties to be empty arrays, and in that case everything is just a tag):
- * {
- *   "target": ["folders", "that", "will", "become", "lists"],
- *   "discard": ["folders", "to", "remove"]
- * }
  */
-const structure = require('./source/structure.json');
-
-const keepFolders = folders.filter(f => structure.target.includes(f.title));
-const tagFolders = folders.filter(f => !structure.discard.includes(f.title));
+const keepFolders = folders.filter(f => listNames.includes(f.title));
+const tagFolders = folders.filter(f => !excludeTags.includes(f.title));
 
 // return a list of comma-separated tags for the task from its parent folder
 function getTagNames(t) {
@@ -219,4 +245,4 @@ const fields = [
 const csv = json2csv(tasks, { fields });
 
 // Write the output to file
-fs.writeFileSync(path.join(__dirname, 'dist', 'tasks.csv'), csv);
+fs.writeFileSync(path.join(process.cwd(), outputPath), csv);
