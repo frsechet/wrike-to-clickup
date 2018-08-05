@@ -37,6 +37,30 @@ function getStatusName(t) {
 }
 
 /**
+ * Traverse all subtasks of a task and flatten to a single array
+ *
+ * @param {*} t
+ * @returns
+ */
+function flattenTask(t) {
+  if (!t) return [];
+  if (t.successors) {
+    t.successor_ids = t.successors.map(s => s.id).join(',') || undefined;
+    const subtasks = t.successors.reduce(
+      (acc, sub) => {
+        sub.parent_id = t.id;
+        acc.push(...flattenTask(sub));
+        return acc;
+      },
+      [],
+    );
+    delete t.successors;
+    return [t, ...subtasks];
+  }
+  return [t];
+}
+
+/**
  * Prepare a task in a format that's actually usable by Clickup
  *
  * @param {srcTask} t
@@ -45,16 +69,15 @@ function getStatusName(t) {
 function transformTask(t) {
   if (!t) return;
   return _(t)
-    .omit(['comments', 'googleDocs', 'attachments', 'timelog', 'duration', ''])
+    .omit(['comments', 'googleDocs', 'attachments', 'timelog', 'duration'])
     .assign(
       {
         id: t.id,
         title: t.title,
-        descriptionDiff: toMarkdown(t.description) === t.description,
         description: toMarkdown(t.description),
         customStatus: getStatusName(t),
-        shared: t.shared.map(getUserEmailById).filter(exists),
-        assigned: t.assigned.map(getUserEmailById).filter(exists),
+        shared: t.shared.map(getUserEmailById).filter(exists).join(',') || undefined,
+        assigned: t.assigned.map(getUserEmailById).filter(exists).join(',') || undefined,
         successors: t.successors && t.successors.map(getTaskById).filter(exists),
         author: getUserEmailById(t.author),
       },
@@ -81,25 +104,98 @@ function getTaskById(id) {
  */
 function transformFolder(f) {
   if (!f) return;
-  return _(f)
+  const folder = _(f)
     .omit(['comments', 'attachments', 'googleDocs', 'isProject', 'dateCreated', 'projectCreatedDate'])
-    .assign(
-      {
-        id: f.id,
-        title: f.title,
-        description: toMarkdown(f.description),
-        shared: f.shared.map(getUserEmailById).filter(exists),
-        owners: f.owners.map(getUserEmailById).filter(exists),
-        author: getUserEmailById(f.author),
-        children: f.children.map(getTaskById).filter(c => c),
-        successors: f.successors && f.successors.map(getTaskById),
-      },
-    )
+    .assign({
+      id: f.id,
+      title: f.title,
+      description: toMarkdown(f.description),
+      shared: f.shared.map(getUserEmailById).filter(exists).join(',') || undefined,
+      owners: f.owners.map(getUserEmailById).filter(exists).join(',') || undefined,
+      author: getUserEmailById(f.author),
+      children: f.children.map(getTaskById).filter(exists),
+    })
     .value();
+
+  // let's add the flattened tasks and remove the children tree
+  return Object
+    .assign(
+      folder,
+      {
+        tasks: folder.children.reduce(
+          (acc, t) => {
+            acc.push(...flattenTask(t));
+            return acc;
+          },
+          [],
+        ),
+        children: undefined,
+      },
+    );
 }
 
 // Prepare folders and tasks
 const folders = srcFolders.map(transformFolder).filter(exists);
 
+/*
+ * Clickup (sadly) does not have a concept of linking the same task to multiple folders
+ * Let's define what folders will be our future `lists`.
+ * By default all folder names will be tags.
+ *
+ * The structure.json file must be formatted as follows
+ * (you can set both properties to be empty arrays, and in that case everything is just a tag):
+ * {
+ *   "target": ["folders", "that", "will", "become", "lists"],
+ *   "discard": ["folders", "to", "remove"]
+ * }
+ */
+const structure = require('./source/structure.json');
+
+const keepFolders = folders.filter(f => structure.target.includes(f.title));
+const tagFolders = folders.filter(f => !structure.discard.includes(f.title));
+
+// return a list of comma-separated tags for the task from its parent folder
+function getTagNames(t) {
+  return tagFolders.filter(f => f.tasks.find(child => child.id === t.id)).map(f => f.title).join(',');
+}
+
+// return the main folder title
+function getListTitle(t) {
+  const match = keepFolders.find(f => f.tasks.find(child => child.id === t.id));
+  return match && match.title;
+}
+
+
+const tasks = _
+  .chain(srcTasks)
+
+  // create the formatted object
+  .map(transformTask)
+  .filter(exists)
+
+  // flatten the subtasks
+  .reduce(
+    (acc, t) => {
+      acc.push(...flattenTask(t));
+      return acc;
+    },
+    [],
+  )
+
+  // remove duplicates
+  .uniqBy('id')
+
+  // add each task's main folder name as list title
+  // and all folder names the task is a member of as tags
+  // this will get folders, subfolders, projects... except discarded folders
+  .map(t => Object.assign(
+    t,
+    {
+      tags: getTagNames(t),
+      list: getListTitle(t),
+    },
+  ))
+  .value();
+
 // Write the output to file
-fs.writeFileSync(path.join(__dirname, 'dist', 'lists.json'), JSON.stringify(folders));
+fs.writeFileSync(path.join(__dirname, 'dist', 'tasks.json'), JSON.stringify(tasks));
