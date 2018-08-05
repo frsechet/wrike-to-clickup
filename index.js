@@ -196,12 +196,12 @@ const tasks = _
   // flatten the subtasks
   .reduce((acc, t) => [...acc, ...flattenTask(t)], [])
 
-// remove duplicates
+  // remove duplicates
   .uniqBy('id')
 
-// add each task's main folder name as list title
-// and all folder names the task is a member of as tags
-// this will get folders, subfolders, projects... except discarded folders
+  // add each task's main folder name as list title
+  // and all folder names the task is a member of as tags
+  // this will get folders, subfolders, projects... except discarded folders
   .map(t => Object.assign(
     t,
     {
