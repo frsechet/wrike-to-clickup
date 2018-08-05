@@ -14,16 +14,15 @@ let outputPath;
 let excludeTags = [];
 let listNames = [];
 
-program.version('0.0.1', '-v, --version');
+program.version(require('../package.json').version, '-v, --version');
 
 program
-  .command('run')
-  .option('-f, --folder <srcFoldersPath>', 'Path to your folders.json file (mandatory)')
-  .option('-t, --tasks <srcTasksPath>', 'Path to your tasks.json file (mandatory)')
-  .option('-u, --users <srcUsersPath>', 'Path to your users.json file (mandatory)')
-  .option('-o, --output <outputPath>', 'Where to save the output file (mandatory)')
-  .option('-e, --excludeTags [excludeTags]', 'Where to save the output file (mandatory)', '')
-  .option('-l, --listNames [listNames]', 'Where to save the output file (mandatory)', '')
+  .option('-f, --folder <srcFoldersPath>', 'Path to your folders.json file')
+  .option('-t, --tasks <srcTasksPath>', 'Path to your tasks.json file')
+  .option('-u, --users <srcUsersPath>', 'Path to your users.json file')
+  .option('-o, --output <outputPath>', 'Where to save the output file')
+  .option('-e, --excludeTags [excludeTags]', "Don't convert these folder names to tags", '')
+  .option('-l, --listNames [listNames]', 'Save these folders as lists and try to keep their tasks', '')
   .description("Convert all tasks in a Wrike account to Clickup's csv import format")
   .action((cmd) => {
     ({
@@ -32,6 +31,11 @@ program
       srcFoldersPath,
       outputPath,
     } = cmd);
+
+    if (!srcUsersPath || !srcTasksPath || !srcFoldersPath || !outputPath) {
+      program.help();
+    }
+
     excludeTags = cmd.excludeTags.split(',');
     listNames = cmd.listNames.split(',');
   });
