@@ -9,6 +9,7 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "json2csv": "^4.2.0",
     "lodash": "^4.17.10",
     "turndown": "^4.0.2"
   },

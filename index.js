@@ -1,6 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 const _ = require('lodash');
+const json2csv = require('json2csv').parse;
 const TurndownService = require('turndown');
 
 const srcUsers = require('./source/users.json');
@@ -197,5 +198,25 @@ const tasks = _
   ))
   .value();
 
+
+// Let's convert this bad boy to CSV and we should be about done.
+const fields = [
+  'id',
+  'title',
+  'description',
+  'status',
+  'customStatus',
+  'tags',
+  'list',
+  'importance',
+  'author',
+  'assigned',
+  'shared',
+  'dateCreated',
+  'dateStart',
+  'dateDue',
+];
+const csv = json2csv(tasks, { fields });
+
 // Write the output to file
-fs.writeFileSync(path.join(__dirname, 'dist', 'tasks.json'), JSON.stringify(tasks));
+fs.writeFileSync(path.join(__dirname, 'dist', 'tasks.csv'), csv);
