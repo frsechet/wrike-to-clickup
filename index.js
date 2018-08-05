@@ -14,10 +14,10 @@ let outputPath;
 let excludeTags = [];
 let listNames = [];
 
-program.version(require('../package.json').version, '-v, --version');
+program.version(require('./package.json').version, '-v, --version');
 
 program
-  .option('-f, --folder <srcFoldersPath>', 'Path to your folders.json file')
+  .option('-f, --folders <srcFoldersPath>', 'Path to your folders.json file')
   .option('-t, --tasks <srcTasksPath>', 'Path to your tasks.json file')
   .option('-u, --users <srcUsersPath>', 'Path to your users.json file')
   .option('-o, --output <outputPath>', 'Where to save the output file')
@@ -25,14 +25,19 @@ program
   .option('-l, --listNames [listNames]', 'Save these folders as lists and try to keep their tasks', '')
   .description("Convert all tasks in a Wrike account to Clickup's csv import format")
   .action((cmd) => {
-    ({
-      srcUsersPath,
-      srcTasksPath,
-      srcFoldersPath,
-      outputPath,
-    } = cmd);
+    const {
+      users,
+      tasks,
+      folders,
+      output,
+    } = cmd;
 
-    if (!srcUsersPath || !srcTasksPath || !srcFoldersPath || !outputPath) {
+    srcUsersPath = path.join(process.cwd(), users);
+    srcTasksPath = path.join(process.cwd(), tasks);
+    srcFoldersPath = path.join(process.cwd(), folders);
+    outputPath = path.join(process.cwd(), output);
+
+    if (!users || !tasks || !folders || !output) {
       program.help();
     }
 
@@ -43,9 +48,9 @@ program
 program.parse(process.argv);
 
 
-const srcUsers = fs.readFileSync(path.join(process.cwd(), srcUsersPath));
-const srcTasks = fs.readFileSync(path.join(process.cwd(), srcTasksPath));
-const srcFolders = fs.readFileSync(path.join(process.cwd(), srcFoldersPath));
+const srcUsers = JSON.parse(fs.readFileSync(srcUsersPath, 'utf8'));
+const srcTasks = JSON.parse(fs.readFileSync(srcTasksPath, 'utf8'));
+const srcFolders = JSON.parse(fs.readFileSync(srcFoldersPath, 'utf8'));
 
 const ts = new TurndownService();
 
@@ -144,7 +149,7 @@ function getTaskById(id) {
  */
 function transformFolder(f) {
   if (!f) return;
-  const folder = _(f)
+  return _(f)
     .omit(['comments', 'attachments', 'googleDocs', 'isProject', 'dateCreated', 'projectCreatedDate'])
     .assign({
       id: f.id,
@@ -153,25 +158,9 @@ function transformFolder(f) {
       shared: f.shared.map(getUserEmailById).filter(exists).join(',') || undefined,
       owners: f.owners.map(getUserEmailById).filter(exists).join(',') || undefined,
       author: getUserEmailById(f.author),
-      children: f.children.map(getTaskById).filter(exists),
+      tasks: f.children.map(getTaskById).filter(exists).reduce((acc, t) => [...acc, ...flattenTask(t)], []),
     })
     .value();
-
-  // let's add the flattened tasks and remove the children tree
-  return Object
-    .assign(
-      folder,
-      {
-        tasks: folder.children.reduce(
-          (acc, t) => {
-            acc.push(...flattenTask(t));
-            return acc;
-          },
-          [],
-        ),
-        children: undefined,
-      },
-    );
 }
 
 // Prepare folders and tasks
@@ -205,20 +194,14 @@ const tasks = _
   .filter(exists)
 
   // flatten the subtasks
-  .reduce(
-    (acc, t) => {
-      acc.push(...flattenTask(t));
-      return acc;
-    },
-    [],
-  )
+  .reduce((acc, t) => [...acc, ...flattenTask(t)], [])
 
-  // remove duplicates
+// remove duplicates
   .uniqBy('id')
 
-  // add each task's main folder name as list title
-  // and all folder names the task is a member of as tags
-  // this will get folders, subfolders, projects... except discarded folders
+// add each task's main folder name as list title
+// and all folder names the task is a member of as tags
+// this will get folders, subfolders, projects... except discarded folders
   .map(t => Object.assign(
     t,
     {
@@ -249,4 +232,4 @@ const fields = [
 const csv = json2csv(tasks, { fields });
 
 // Write the output to file
-fs.writeFileSync(path.join(process.cwd(), outputPath), csv);
+fs.writeFileSync(outputPath, csv);

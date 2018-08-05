@@ -2,13 +2,13 @@
   "name": "wrike2clickup",
   "version": "1.0.1",
   "description": "Convert a wrike account to a clickup csv import file",
-  "main": "./bin/wrike2clickup.js",
+  "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "preferGlobal": true,
   "bin": {
-    "wrike2clickup": "./bin/wrike2clickup.js"
+    "wrike2clickup": "./index.js"
   },
   "author": "François Falala-Sechet <francois@clevy.io>",
   "license": "ISC",
