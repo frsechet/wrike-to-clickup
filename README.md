@@ -1,10 +1,10 @@
 # Easily switch from Wrike to Clickup
 
-If you have a Wrike account and are dissatisfied with their service, and happen to want to switch to (Clickup)[https://www.clickup.com], you are in luck, here is how you can do it with very minimal trouble.
+If you have a Wrike account and are dissatisfied with their service, and happen to want to switch to [Clickup](https://www.clickup.com), you are in luck, here is how you can do it with very minimal trouble.
 
 ## Disclaimer
 
-This script was written on a sunny Sunday afternoon while performing my own switch, and while it works for me, I don't intend to maintain it past my own current needs. Wrike and Clickup may both change their import/export formatting at any time without asking me first, so I won't do any issues and stuff, just use it, modify it, do whatever you want with it. If it helps you, I'm happy.
+I'm neither an employee of Clickup nor from Wrike. This simple script was written on a sunny Sunday afternoon as a tool for performing my own switch. While it works for me, I don't intend to maintain it past my own current needs. Wrike and Clickup may both change their import/export formatting at any time without asking me first, so I won't do any issues and stuff, just use it, modify it, do whatever you want with it. If it helps you, I'm happy.
 
 ## Requirements
 
