@@ -1,6 +1,6 @@
 {
   "name": "wrike2clickup",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Convert a wrike account to a clickup csv import file",
   "main": "./bin/wrike2clickup.js",
   "scripts": {
