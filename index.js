@@ -32,21 +32,20 @@ program
       output,
     } = cmd;
 
+    if (!users || !tasks || !folders || !output) {
+      program.help();
+    }
+
     srcUsersPath = path.join(process.cwd(), users);
     srcTasksPath = path.join(process.cwd(), tasks);
     srcFoldersPath = path.join(process.cwd(), folders);
     outputPath = path.join(process.cwd(), output);
-
-    if (!users || !tasks || !folders || !output) {
-      program.help();
-    }
 
     excludeTags = cmd.excludeTags.split(',');
     listNames = cmd.listNames.split(',');
   });
 
 program.parse(process.argv);
-
 
 const srcUsers = JSON.parse(fs.readFileSync(srcUsersPath, 'utf8'));
 const srcTasks = JSON.parse(fs.readFileSync(srcTasksPath, 'utf8'));
